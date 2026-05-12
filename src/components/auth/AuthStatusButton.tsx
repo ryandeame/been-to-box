@@ -1,15 +1,19 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { resolveCurrentProfileHref } from "@/lib/profile-routes";
 
 export default function AuthStatusButton() {
+  const router = useRouter();
   const { loading, signOutUser, user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [profileHref, setProfileHref] = useState<string | null>(null);
+  const [resolvingProfile, setResolvingProfile] = useState(false);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setMounted(true), 0);
@@ -17,21 +21,64 @@ export default function AuthStatusButton() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveProfileHref = async () => {
+      if (!user) {
+        setProfileHref(null);
+        return;
+      }
+
+      try {
+        const resolvedHref = await resolveCurrentProfileHref(user.uid);
+
+        if (isMounted) {
+          setProfileHref(resolvedHref);
+        }
+      } catch (profileError) {
+        console.warn("Could not resolve profile menu route", profileError);
+
+        if (isMounted) {
+          setProfileHref("/sign-up");
+        }
+      }
+    };
+
+    void resolveProfileHref();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const handleProfileClick = async () => {
+    if (!user) {
+      return;
+    }
+
+    setResolvingProfile(true);
+    setMenuOpen(false);
+
+    try {
+      const resolvedHref = profileHref ?? await resolveCurrentProfileHref(user.uid);
+
+      setProfileHref(resolvedHref);
+      router.push(resolvedHref);
+    } catch (profileError) {
+      console.warn("Could not navigate to profile route", profileError);
+      router.push("/sign-up");
+    } finally {
+      setResolvingProfile(false);
+    }
+  };
+
   if (!mounted || loading) {
     return null;
   }
 
   if (!user) {
-    return (
-      <div className="fixed left-4 top-4 z-[1200] flex gap-2">
-        <Link
-          className="rounded-full border-2 border-[#24110c]/15 bg-[#fff4cf] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#24110c] shadow-[0_7px_0_rgba(36,17,12,0.12)]"
-          href="/sign-in"
-        >
-          Sign in
-        </Link>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -57,15 +104,16 @@ export default function AuthStatusButton() {
           className="absolute left-0 mt-3 w-56 overflow-hidden rounded-[1.25rem] border-2 border-[#24110c]/15 bg-[#fff4cf] p-2 text-[#24110c] shadow-[0_18px_44px_rgba(36,17,12,0.2)]"
           role="menu"
         >
-          <Link
-            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-[0.14em] transition-colors hover:bg-[#f8edcf]"
-            href="/profile"
-            onClick={() => setMenuOpen(false)}
+          <button
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black uppercase tracking-[0.14em] transition-colors hover:bg-[#f8edcf]"
+            disabled={resolvingProfile}
+            onClick={handleProfileClick}
             role="menuitem"
+            type="button"
           >
             <UserRound className="h-4 w-4 text-[#8f1110]" />
-            Profile page
-          </Link>
+            {resolvingProfile ? "Opening profile" : "Profile page"}
+          </button>
           <button
             className="mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black uppercase tracking-[0.14em] text-[#8f1110] transition-colors hover:bg-[#f8edcf]"
             onClick={() => {

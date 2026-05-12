@@ -21,6 +21,7 @@ import {
   type BeenToLocation,
   type BeenToLocationWithImage,
 } from "./beenToData";
+import { syncPublicBeenToBoxPreview } from "./publicPreview";
 import type { PublicBeenToBoxProfileData } from "@/lib/public-profiles";
 
 const PAGE_SIZE = 5;
@@ -285,7 +286,14 @@ function toPublicPreviewLocation(docId: string, data: PublicTopImageDoc): BeenTo
         ? data.locationName
         : locationSlug,
     photoCount,
+    slug: locationSlug,
   };
+}
+
+function getPublicPreviewRank(data: PublicTopImageDoc, fallbackRank: number) {
+  return typeof data.rank === "number" && Number.isFinite(data.rank)
+    ? data.rank
+    : fallbackRank;
 }
 
 export function useBeenToLocations(options: UseBeenToLocationsOptions = {}) {
@@ -301,6 +309,7 @@ export function useBeenToLocations(options: UseBeenToLocationsOptions = {}) {
   const hasMoreRef = useRef(true);
   const loadingRef = useRef(false);
   const locationsRef = useRef<BeenToLocationWithImage[]>([]);
+  const publicPreviewSyncKeyRef = useRef<string | null>(null);
   const versionRef = useRef<string | null>(null);
   const isProfileMode = Boolean(profile);
 
@@ -346,18 +355,22 @@ export function useBeenToLocations(options: UseBeenToLocationsOptions = {}) {
     try {
       const previewQuery = query(
         collection(db, "publicProfiles", profile.username, "topImages"),
-        orderBy("rank"),
         limit(PUBLIC_PREVIEW_SIZE),
       );
       const snapshot = await getDocs(previewQuery);
       const previewLocations = snapshot.docs
-        .map((snapshotDoc) =>
-          toPublicPreviewLocation(
-            snapshotDoc.id,
+        .map((snapshotDoc, index) => ({
+          docId: snapshotDoc.id,
+          rank: getPublicPreviewRank(
             snapshotDoc.data() as PublicTopImageDoc,
+            index + 1,
           ),
-        )
-        .filter((location): location is BeenToLocationWithImage => Boolean(location));
+          data: snapshotDoc.data() as PublicTopImageDoc,
+        }))
+        .sort((a, b) => a.rank - b.rank)
+        .map((snapshotDoc) => toPublicPreviewLocation(snapshotDoc.docId, snapshotDoc.data))
+        .filter((location): location is BeenToLocationWithImage => Boolean(location))
+        .slice(0, PUBLIC_PREVIEW_SIZE);
 
       cursorIdRef.current = null;
       hasMoreRef.current = false;
@@ -512,6 +525,26 @@ export function useBeenToLocations(options: UseBeenToLocationsOptions = {}) {
       isMounted = false;
     };
   }, [authReady, currentUser, fetchNextPage, profile]);
+
+  useEffect(() => {
+    if (!authReady || !profile || !currentUser || currentUser.uid !== profile.uid) {
+      return;
+    }
+
+    const syncKey = `${profile.username}:${currentUser.uid}`;
+
+    if (publicPreviewSyncKeyRef.current === syncKey) {
+      return;
+    }
+
+    publicPreviewSyncKeyRef.current = syncKey;
+
+    syncPublicBeenToBoxPreview(currentUser, {
+      username: profile.username,
+    }).catch((previewSyncError) => {
+      console.warn("Could not sync Been-To-Box public preview", previewSyncError);
+    });
+  }, [authReady, currentUser, profile]);
 
   const isAuthenticated = Boolean(currentUser);
   const primaryLocations = useMemo(

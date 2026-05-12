@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Compass, Globe2, MapPin, Plane, Plus, Sparkles } from "lucide-react";
+import { Compass, Globe2, MapPin, Plane, Plus, Sparkles } from "lucide-react";
 
 import {
   toBeenToDestinations,
@@ -14,6 +14,7 @@ import {
 } from "./beenToData";
 import { useBeenToLocations } from "./useBeenToLocations";
 import type { PublicBeenToBoxProfileData } from "@/lib/public-profiles";
+import BentoHomeLink from "@/components/navigation/BentoHomeLink";
 
 const statStyles = [
   "from-teal-500 to-cyan-700",
@@ -224,6 +225,9 @@ export default function BeenToBoxPage({
     [archiveDimensions, archiveLocations],
   );
   const hasArchiveDestinations = archiveDestinations.length > 0;
+  const previewDestinationCount = primaryDestinations.length + archiveDestinations.length;
+  const shouldShowPublicProfileGate =
+    isPublicPreview && !initialLoading && !error && previewDestinationCount > 0;
   const profileHref = profile ? `/${profile.username}` : "/";
 
   useEffect(() => {
@@ -275,17 +279,8 @@ export default function BeenToBoxPage({
       </div>
 
       <section className="relative mx-auto flex min-h-screen max-w-[1720px] flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-[#24110c]/15 bg-white/55 px-4 py-2 text-sm font-black uppercase tracking-[0.16em] text-[#24110c] shadow-[0_8px_0_rgba(36,17,12,0.12)] transition-transform hover:-translate-y-0.5"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Product
-          </Link>
-          <div className="rounded-full border-2 border-[#24110c]/10 bg-[#24110c] px-4 py-2 text-sm font-black uppercase tracking-[0.18em] text-[#f8edcf] shadow-[0_8px_0_rgba(36,17,12,0.12)]">
-            Choose a flavor
-          </div>
+        <div className="mb-5 flex items-center justify-center">
+          <BentoHomeLink />
         </div>
 
         <div className="relative flex-1 overflow-hidden rounded-[2.25rem] border-[10px] border-[#151313] bg-[#8f1110] p-3 shadow-[0_34px_80px_rgba(36,17,12,0.28)] transition-[padding,min-height] duration-700 ease-out sm:rounded-[3rem] sm:p-4 lg:p-5">
@@ -328,7 +323,7 @@ export default function BeenToBoxPage({
             </div>
           ) : null}
 
-          {isPublicPreview && primaryDestinations.length + archiveDestinations.length >= 10 ? (
+          {shouldShowPublicProfileGate ? (
             <LockedPreviewRemainder profile={profile} />
           ) : null}
         </div>
@@ -527,8 +522,11 @@ function LockedPreviewRemainder({
             More compartments are packed
           </p>
           <h2 className="mt-3 text-3xl font-black text-[#24110c] sm:text-4xl">
-            Log in to reveal the rest of this Been-To-Box.
+            Create an account or log in to see the full profile for {profile?.displayName ?? "this traveler"}.
           </h2>
+          <p className="mx-auto mt-3 max-w-md text-base font-bold leading-7 text-[#8f1110]/75">
+            You are viewing a public preview. Sign up to unlock the full Been-To-Box experience.
+          </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               className="rounded-full bg-[#24110c] px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-[#f8edcf] shadow-[0_7px_0_rgba(36,17,12,0.22)]"
@@ -682,7 +680,6 @@ function buildLoadingStats(): BeenToStat[] {
   return [
     { label: "places", value: 0 },
     { label: "countries", value: 0 },
-    { label: "continents", value: 0 },
     { label: "photos", value: 0 },
   ];
 }

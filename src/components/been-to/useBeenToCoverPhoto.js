@@ -16,6 +16,7 @@ import {
 
 import { useAuth } from '@/components/auth/AuthProvider';
 import { db } from '@/lib/firebase';
+import { syncPublicBeenToBoxPreview } from './publicPreview';
 
 const CACHE_KEY = 'been-to-box:locations-cache:v1';
 const COVER_UPDATED_KEY = 'been-to-box:cover-updated';
@@ -148,6 +149,10 @@ export function useBeenToCoverPhoto() {
           console.warn('Cover photo saved, but public preview sync failed', publicPreviewError);
         }
       }
+
+      await syncPublicBeenToBoxPreview(user, {
+        username: typeof username === 'string' ? username : '',
+      });
 
       window.localStorage.removeItem(CACHE_KEY);
       window.sessionStorage.removeItem('been-to-box:image-dimensions:v2');

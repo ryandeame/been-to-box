@@ -1,4 +1,4 @@
-const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,22}[a-z0-9])$/;
+const USERNAME_PATTERN = /^[a-z0-9-]{3,24}$/;
 const RESERVED_USERNAMES = new Set([
   "admin",
   "api",
@@ -21,7 +21,7 @@ const RESERVED_USERNAMES = new Set([
 ]);
 
 export function normalizeUsername(value: string) {
-  return value.trim().toLowerCase().replace(/^@+/, "");
+  return value.trim().toLowerCase();
 }
 
 export function validateUsername(value: string) {
@@ -30,7 +30,7 @@ export function validateUsername(value: string) {
   if (!USERNAME_PATTERN.test(username)) {
     return {
       ok: false,
-      reason: "Use 3-24 characters: lowercase letters, numbers, and hyphens. Start and end with a letter or number.",
+      reason: username.length < 3 ? "Username must be at least 3 characters." : "Invalid username.",
       username,
     } as const;
   }

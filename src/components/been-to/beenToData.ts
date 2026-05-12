@@ -123,10 +123,6 @@ export function buildBeenToStats(locations: BeenToLocation[]): BeenToStat[] {
       value: countUnique(locations.map((location) => location.country)),
     },
     {
-      label: "continents",
-      value: countUnique(locations.map((location) => location.continent)),
-    },
-    {
       label: "photos",
       value: locations.reduce((sum, location) => sum + location.photoCount, 0),
     },

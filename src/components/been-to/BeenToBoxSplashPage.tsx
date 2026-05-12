@@ -4,27 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { db } from "@/lib/firebase";
-
-async function getProfileHref(user: User) {
-  try {
-    const profileSnapshot = await getDoc(doc(db, "users", user.uid));
-    const username = profileSnapshot.data()?.username;
-
-    if (typeof username === "string" && username.length > 0) {
-      return `/${username}`;
-    }
-  } catch (profileError) {
-    console.warn("Could not resolve Been-To-Box profile route", profileError);
-  }
-
-  return "/profile";
-}
+import { resolveCurrentProfileHref } from "@/lib/profile-routes";
 
 export default function BeenToBoxSplashPage() {
   const router = useRouter();
@@ -41,7 +24,7 @@ export default function BeenToBoxSplashPage() {
 
       setRedirecting(true);
 
-      const profileHref = await getProfileHref(user);
+      const profileHref = await resolveCurrentProfileHref(user.uid);
 
       if (isMounted) {
         router.replace(profileHref);
@@ -70,8 +53,7 @@ export default function BeenToBoxSplashPage() {
 
       <section className="relative z-10 flex min-h-screen items-center px-5 py-10 sm:px-8 lg:px-14">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#f8edcf]/20 bg-[#f8edcf]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-[#facc15] shadow-[0_8px_0_rgba(0,0,0,0.2)] backdrop-blur">
-            <Sparkles className="h-4 w-4" />
+          <div className="inline-flex items-center rounded-full border border-[#f8edcf]/20 bg-[#f8edcf]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-[#facc15] shadow-[0_8px_0_rgba(0,0,0,0.2)] backdrop-blur">
             Travel, plated
           </div>
 

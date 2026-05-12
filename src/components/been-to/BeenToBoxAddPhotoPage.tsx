@@ -18,6 +18,7 @@ import { ArrowLeft, ChevronDown, ImagePlus, Loader2, MapPin, UploadCloud, X } fr
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { db, storage } from "@/lib/firebase";
+import { syncPublicBeenToBoxPreview } from "./publicPreview";
 
 const CACHE_KEY = "been-to-box:locations-cache:v1";
 const DIMENSION_CACHE_KEY = "been-to-box:image-dimensions:v2";
@@ -368,6 +369,8 @@ export default function BeenToBoxAddPhotoPage() {
         },
         { merge: true },
       );
+
+      await syncPublicBeenToBoxPreview(user);
 
       window.localStorage.removeItem(CACHE_KEY);
       window.sessionStorage.removeItem(DIMENSION_CACHE_KEY);

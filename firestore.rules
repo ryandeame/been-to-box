@@ -10,6 +10,11 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function publicProfileOwner(username) {
+      return signedIn()
+        && get(/databases/$(database)/documents/publicProfiles/$(username)).data.uid == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
       allow create, update, delete: if isOwner(userId);
@@ -49,8 +54,9 @@ service cloud.firestore {
 
       match /topImages/{imageId} {
         allow read: if true;
-        allow create, update, delete: if signedIn()
-          && get(/databases/$(database)/documents/publicProfiles/$(username)).data.uid == request.auth.uid;
+        allow create, update: if publicProfileOwner(username)
+          && request.resource.data.ownerUid == request.auth.uid;
+        allow delete: if publicProfileOwner(username);
       }
     }
 
